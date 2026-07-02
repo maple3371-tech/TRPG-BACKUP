@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>구름 위 세션 일지 ☁️</title>
+<link href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&family=Hi+Melody&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --sky-bg:#EAF6FF;
+    --sky-soft:#CDEBFF;
+    --sky-mid:#9FD8FF;
+    --sky-main:#5FB4EF;
+    --sky-deep:#3D8FCC;
+    --ink:#2B4A66;
+    --ink-soft:#6B8AA3;
+    --cloud:#FFFFFF;
+    --peach:#FFB7B7;
+    --radius:18px;
+    font-size:16px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    font-family:'Gowun Dodum',sans-serif;
+    background:var(--sky-bg);
+    color:var(--ink);
+    min-height:100vh;
+    overflow-x:hidden;
+  }
+  /* ---------- 떠다니는 구름 배경 ---------- */
+  .bg-cloud{position:fixed;opacity:.55;pointer-events:none;z-index:0;animation:drift 60s linear infinite}
+  .bg-cloud svg{width:100%;height:100%}
+  @keyframes drift{from{transform:translateX(-15vw)}to{transform:translateX(115vw)}}
+  @media (prefers-reduced-motion:reduce){.bg-cloud{animation:none}}
+
+  header{
+    position:relative;z-index:2;
+    display:flex;align-items:center;justify-content:space-between;
+    padding:18px 26px;
+  }
+  .logo{font-family:'Hi Melody',cursive;font-size:1.9rem;color:var(--sky-deep);display:flex;align-items:center;gap:8px}
+  .userbox{display:flex;align-items:center;gap:10px}
+  .userbox img{width:36px;height:36px;border-radius:50%;border:2px solid var(--sky-mid)}
+  .userbox span{font-size:.9rem;color:var(--ink-soft)}
+  button{font-family:inherit;cursor:pointer;border:none}
+  .btn{
+    background:var(--cloud);color:var(--sky-deep);
+    padding:9px 18px;border-radius:999px;font-size:.92rem;
+    box-shadow:0 3px 0 var(--sky-soft);
+    transition:transform .12s ease, box-shadow .12s ease;
+  }
+  .btn:hover{transform:translateY(-2px);box-shadow:0 5px 0 var(--sky-soft)}
+  .btn:focus-visible{outline:3px solid var(--sky-main);outline-offset:2px}
+  .btn-primary{background:var(--sky-main);color:#fff;box-shadow:0 3px 0 var(--sky-deep)}
+  .btn-primary:hover{box-shadow:0 5px 0 var(--sky-deep)}
+  .btn-danger{background:#fff;color:#E06C6C;box-shadow:0 3px 0 #F5CFCF}
+
+  /* ---------- 로그인 화면 ---------- */
+  #login-screen{
+    position:relative;z-index:2;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    min-height:80vh;gap:20px;text-align:center;padding:20px;
+  }
+  #login-screen h1{font-family:'Hi Melody',cursive;font-size:2.6rem;color:var(--sky-deep)}
+  #login-screen p{color:var(--ink-soft);line-height:1.7}
+  .cloud-hero{width:180px;animation:bob 3.5s ease-in-out infinite}
+  @keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
+  @media (prefers-reduced-motion:reduce){.cloud-hero{animation:none}}
+
+  /* ---------- 캘린더 ---------- */
+  main{position:relative;z-index:1;max-width:1100px;margin:0 auto;padding:0 18px 80px}
+  .cal-nav{display:flex;align-items:center;justify-content:center;gap:18px;margin:8px 0 18px}
+  .cal-nav h2{font-family:'Hi Melody',cursive;font-size:2rem;color:var(--sky-deep);min-width:200px;text-align:center}
+  .nav-btn{background:var(--cloud);width:42px;height:42px;border-radius:50%;font-size:1.1rem;color:var(--sky-deep);box-shadow:0 3px 0 var(--sky-soft)}
+  .weekdays{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-bottom:8px}
+  .weekdays div{text-align:center;font-size:.85rem;color:var(--ink-soft);padding:4px}
+  .weekdays div:first-child{color:var(--peach)}
+  .weekdays div:last-child{color:var(--sky-main)}
+  #calendar{display:grid;grid-template-columns:repeat(7,1fr);gap:8px}
+  .day{
+    background:var(--cloud);border-radius:14px;padding:6px;
+    min-height:96px;display:flex;flex-direction:column;gap:5px;
+    box-shadow:0 2px 6px rgba(95,180,239,.15);
+  }
+  .day.other{background:transparent;box-shadow:none;opacity:.45}
+  .day .num{font-size:.8rem;color:var(--ink-soft);padding-left:2px}
+  .day.today .num{
+    display:inline-flex;align-items:center;justify-content:center;
+    width:22px;height:22px;border-radius:50%;
+    background:var(--sky-main);color:#fff;padding:0;
+  }
+  .day.sun .num{color:var(--peach)}
+  .day.today.sun .num{color:#fff}
+
+  /* 세션 카드: 1300×800 = 13:8 비율 그대로 축소, 칸에 꽉 차게 */
+  .session-card{
+    width:100%;aspect-ratio:13/8;border-radius:10px;overflow:hidden;
+    position:relative;padding:0;display:block;
+    box-shadow:0 2px 5px rgba(43,74,102,.18);
+    transition:transform .12s ease;
+    border:2px solid transparent;
+  }
+  .session-card:hover{transform:scale(1.04);border-color:var(--sky-main)}
+  .session-card:focus-visible{outline:3px solid var(--sky-deep);outline-offset:1px}
+  .session-card img{width:100%;height:100%;object-fit:cover;display:block}
+  .session-card .ph{
+    width:100%;height:100%;display:flex;align-items:center;justify-content:center;
+    background:linear-gradient(135deg,var(--sky-mid),var(--sky-soft));
+    color:var(--ink);font-size:.72rem;padding:4px;text-align:center;
+    font-family:'Hi Melody',cursive;line-height:1.2;word-break:keep-all;
+  }
+  .session-card .badge{
+    position:absolute;top:0;right:0;
+    background:var(--sky-main);color:#fff;font-size:.62rem;
+    padding:2px 7px;border-bottom-left-radius:9px;
+  }
+
+  .fab{
+    position:fixed;right:26px;bottom:26px;z-index:5;
+    background:var(--sky-main);color:#fff;
+    padding:15px 24px;border-radius:999px;font-size:1rem;
+    box-shadow:0 5px 0 var(--sky-deep), 0 8px 20px rgba(61,143,204,.35);
+  }
+  .fab:hover{transform:translateY(-2px)}
+
+  /* ---------- 모달 ---------- */
+  #overlay{
+    position:fixed;inset:0;background:rgba(43,74,102,.35);
+    display:none;align-items:flex-start;justify-content:center;
+    z-index:10;padding:30px 14px;overflow-y:auto;
+  }
+  #overlay.open{display:flex}
+  .modal{
+    background:var(--cloud);border-radius:24px;width:100%;max-width:520px;
+    padding:26px;position:relative;
+    box-shadow:0 10px 40px rgba(43,74,102,.25);
+  }
+  .modal h3{font-family:'Hi Melody',cursive;font-size:1.6rem;color:var(--sky-deep);margin-bottom:16px}
+  .modal .close{position:absolute;top:16px;right:18px;background:none;font-size:1.3rem;color:var(--ink-soft)}
+  .field{margin-bottom:14px}
+  .field label{display:block;font-size:.85rem;color:var(--ink-soft);margin-bottom:5px}
+  .field input[type=text], .field input[type=date]{
+    width:100%;padding:10px 12px;border-radius:12px;
+    border:2px solid var(--sky-soft);background:#FBFDFF;
+    font-family:inherit;font-size:.95rem;color:var(--ink);
+  }
+  .field input:focus{outline:none;border-color:var(--sky-main)}
+  .toggle-group{display:flex;gap:8px}
+  .toggle-group button{
+    flex:1;padding:10px;border-radius:12px;font-size:.9rem;
+    background:#F2FAFF;border:2px solid var(--sky-soft);color:var(--ink-soft);
+  }
+  .toggle-group button.on{background:var(--sky-main);border-color:var(--sky-main);color:#fff}
+  .img-drop{
+    width:100%;aspect-ratio:13/8;border-radius:14px;overflow:hidden;
+    border:2px dashed var(--sky-mid);background:#F2FAFF;
+    display:flex;align-items:center;justify-content:center;
+    color:var(--ink-soft);font-size:.85rem;cursor:pointer;position:relative;
+  }
+  .img-drop img{width:100%;height:100%;object-fit:cover}
+  .date-row{display:flex;gap:8px;align-items:center;margin-bottom:6px}
+  .date-row .seq{font-size:.8rem;color:var(--sky-deep);min-width:44px;font-family:'Hi Melody',cursive}
+  .date-row input{flex:1}
+  .date-row .rm{background:none;color:#E06C6C;font-size:1rem;padding:4px}
+  .add-date{background:#F2FAFF;border:2px dashed var(--sky-mid);color:var(--sky-deep);width:100%;padding:8px;border-radius:12px;font-size:.85rem}
+  .modal-actions{display:flex;gap:10px;margin-top:20px}
+  .modal-actions .btn-primary{flex:1;padding:12px}
+
+  #toast{
+    position:fixed;left:50%;bottom:100px;transform:translateX(-50%) translateY(20px);
+    background:var(--ink);color:#fff;padding:10px 20px;border-radius:999px;
+    font-size:.88rem;opacity:0;transition:.25s;z-index:20;pointer-events:none;
+  }
+  #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  #setup-notice{
+    position:relative;z-index:3;max-width:640px;margin:40px auto;
+    background:#FFF6E5;border:2px solid #F5D78E;border-radius:18px;
+    padding:22px;line-height:1.8;font-size:.92rem;display:none;
+  }
+  #setup-notice code{background:#FFEFC7;padding:2px 6px;border-radius:6px;font-size:.85rem}
+
+  @media (max-width:640px){
+    header{padding:14px 14px}
+    .logo{font-size:1.4rem}
+    .day{min-height:64px;border-radius:10px;padding:4px}
+    .session-card .ph{font-size:.55rem}
+    .session-card .badge{font-size:.5rem;padding:1px 5px}
+    .cal-nav h2{font-size:1.5rem;min-width:150px}
+    .fab{right:16px;bottom:16px}
+  }
+</style>
+</head>
+<body>
+
+<!-- 배경 구름들 -->
+<div class="bg-cloud" style="top:12%;left:-15vw;width:160px;animation-duration:75s">
+  <svg viewBox="0 0 100 60" xmlns="http://www.w3.org/2000/svg"><ellipse cx="35" cy="40" rx="30" ry="16" fill="#fff"/><ellipse cx="60" cy="32" rx="26" ry="18" fill="#fff"/><ellipse cx="75" cy="42" rx="20" ry="12" fill="#fff"/></svg>
+</div>
+<div class="bg-cloud" style="top:55%;left:-15vw;width:220px;animation-duration:95s;animation-delay:-30s">
+  <svg viewBox="0 0 100 60" xmlns="http://www.w3.org/2000/svg"><ellipse cx="35" cy="40" rx="30" ry="16" fill="#fff"/><ellipse cx="60" cy="32" rx="26" ry="18" fill="#fff"/><ellipse cx="75" cy="42" rx="20" ry="12" fill="#fff"/></svg>
+</div>
+
+<header>
+  <div class="logo">☁️ 구름 위 세션 일지</div>
+  <div class="userbox" id="userbox" style="display:none">
+    <img id="user-photo" alt="프로필 사진" referrerpolicy="no-referrer" />
+    <span id="user-name"></span>
+    <button class="btn" id="logout-btn">로그아웃</button>
+  </div>
+</header>
+
+<div id="setup-notice">
+  <strong>⚙️ 아직 Firebase 설정이 비어 있어요!</strong><br/>
+  이 사이트가 구글 로그인과 자동 저장을 하려면 무료 Firebase 프로젝트가 필요해요.<br/>
+  함께 들어 있는 <code>README.md</code>의 순서를 따라 설정값을 <code>index.html</code> 안의
+  <code>firebaseConfig</code>에 붙여넣어 주세요. 5~10분이면 끝나요!
+</div>
+
+<section id="login-screen" style="display:none">
+  <svg class="cloud-hero" viewBox="0 0 120 80" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <ellipse cx="45" cy="52" rx="36" ry="20" fill="#fff"/>
+    <ellipse cx="75" cy="42" rx="30" ry="22" fill="#fff"/>
+    <ellipse cx="92" cy="54" rx="22" ry="14" fill="#fff"/>
+    <circle cx="60" cy="46" r="3" fill="#2B4A66"/><circle cx="78" cy="46" r="3" fill="#2B4A66"/>
+    <path d="M64 55 q5 5 10 0" stroke="#2B4A66" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+    <circle cx="54" cy="53" r="3.5" fill="#FFC9C9" opacity=".8"/><circle cx="85" cy="53" r="3.5" fill="#FFC9C9" opacity=".8"/>
+  </svg>
+  <h1>구름 위 세션 일지</h1>
+  <p>내가 뛰었던 티알과 앞으로의 일정을<br/>하늘색 캘린더에 차곡차곡 모아 두는 곳이에요.</p>
+  <button class="btn btn-primary" id="login-btn">구글로 로그인하기</button>
+</section>
+
+<main id="app" style="display:none">
+  <div class="cal-nav">
+    <button class="nav-btn" id="prev-month" aria-label="이전 달">◀</button>
+    <h2 id="cal-title"></h2>
+    <button class="nav-btn" id="next-month" aria-label="다음 달">▶</button>
+  </div>
+  <div class="weekdays"><div>일</div><div>월</div><div>화</div><div>수</div><div>목</div><div>금</div><div>토</div></div>
+  <div id="calendar"></div>
+</main>
+
+<button class="fab" id="fab" style="display:none">＋ 새 세션</button>
+
+<div id="overlay">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <button class="close" id="modal-close" aria-label="닫기">✕</button>
+    <h3 id="modal-title">새 세션 기록</h3>
+
+    <div class="field">
+      <label>세션 카드 (1300×800 이미지)</label>
+      <div class="img-drop" id="img-drop" tabindex="0" role="button" aria-label="세션 카드 이미지 업로드">
+        <span id="img-hint">클릭해서 이미지 올리기 ☁️</span>
+      </div>
+      <input type="file" id="img-input" accept="image/*" style="display:none" />
+    </div>
+
+    <div class="field">
+      <label for="f-title">시나리오 제목</label>
+      <input type="text" id="f-title" placeholder="예) 흐린 하늘 아래" />
+    </div>
+    <div class="field">
+      <label for="f-writer">라이터</label>
+      <input type="text" id="f-writer" placeholder="시나리오 작가님 이름" />
+    </div>
+    <div class="field">
+      <label>플랫폼</label>
+      <div class="toggle-group" id="f-platform">
+        <button type="button" data-v="roll20">롤20</button>
+        <button type="button" data-v="cocofolia">코코포리아</button>
+      </div>
+    </div>
+    <div class="field">
+      <label>인원</label>
+      <div class="toggle-group" id="f-type">
+        <button type="button" data-v="multi">다인 시나리오</button>
+        <button type="button" data-v="taiman">타이만</button>
+      </div>
+    </div>
+    <div class="field">
+      <label for="f-kpc">KPC</label>
+      <input type="text" id="f-kpc" placeholder="KPC 이름" />
+    </div>
+    <div class="field">
+      <label for="f-pc">PC</label>
+      <input type="text" id="f-pc" placeholder="내 탐사자 이름" />
+    </div>
+    <div class="field">
+      <label>일정 (여러 회차로 나눠서 가면 날짜를 계속 추가하세요)</label>
+      <div id="date-list"></div>
+      <button type="button" class="add-date" id="add-date">＋ 날짜 추가</button>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn btn-primary" id="save-btn">저장하기 ☁️</button>
+      <button class="btn btn-danger" id="delete-btn" style="display:none">삭제</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script>
+/* =========================================================
+   ① 여기에 본인의 Firebase 설정을 붙여넣으세요! (README 참고)
+   ========================================================= */
+const firebaseConfig = {
+  apiKey: "AIzaSyCl2nDvV7k-j74HXRjYlTlCjKDxGSKJaVY",
+  authDomain: "trpg-55b34.firebaseapp.com",
+  projectId: "trpg-55b34",
+  storageBucket: "trpg-55b34.firebasestorage.app",
+  messagingSenderId: "846364915793",
+  appId: "1:846364915793:web:35e119ebcea4e6b28ca070",
+  measurementId: "G-6RZTCGWD3D"
+};
+/* ========================================================= */
+
+const $ = id => document.getElementById(id);
+
+if (firebaseConfig.apiKey.startsWith("여기에")) {
+  $("setup-notice").style.display = "block";
+} else {
+  firebase.initializeApp(firebaseConfig);
+  startApp();
+}
+
+function startApp(){
+  const auth = firebase.auth();
+  const db = firebase.firestore();
+
+  let uid = null;
+  let scenarios = {};          // id -> data
+  let unsubscribe = null;
+  let current = new Date();    // 보고 있는 달
+  let editingId = null;        // 수정 중인 시나리오 id
+  let imgData = null;          // base64 이미지
+
+  /* ---------- 로그인 ---------- */
+  $("login-btn").onclick = () => {
+    const provider = new firebase.auth.GoogleAuthProvider();
+    auth.signInWithPopup(provider).catch(e => {
+      // 팝업이 막히는 환경(일부 모바일)에서는 리다이렉트로
+      if (e.code === "auth/popup-blocked") auth.signInWithRedirect(provider);
+      else toast("로그인에 실패했어요: " + e.message);
+    });
+  };
+  $("logout-btn").onclick = () => auth.signOut();
+
+  auth.onAuthStateChanged(user => {
+    if (user) {
+      uid = user.uid;
+      $("login-screen").style.display = "none";
+      $("app").style.display = "block";
+      $("fab").style.display = "block";
+      $("userbox").style.display = "flex";
+      $("user-photo").src = user.photoURL || "";
+      $("user-name").textContent = user.displayName || "";
+      listen();
+    } else {
+      uid = null;
+      if (unsubscribe) unsubscribe();
+      scenarios = {};
+      $("login-screen").style.display = "flex";
+      $("app").style.display = "none";
+      $("fab").style.display = "none";
+      $("userbox").style.display = "none";
+    }
+  });
+
+  /* ---------- 실시간 동기화 ---------- */
+  function listen(){
+    if (unsubscribe) unsubscribe();
+    unsubscribe = db.collection("users").doc(uid).collection("scenarios")
+      .onSnapshot(snap => {
+        scenarios = {};
+        snap.forEach(doc => scenarios[doc.id] = doc.data());
+        renderCalendar();
+      }, e => toast("데이터를 불러오지 못했어요: " + e.message));
+  }
+
+  /* ---------- 캘린더 ---------- */
+  const fmt = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+
+  function renderCalendar(){
+    const y = current.getFullYear(), m = current.getMonth();
+    $("cal-title").textContent = `${y}년 ${m+1}월`;
+    const first = new Date(y, m, 1);
+    const start = new Date(first); start.setDate(1 - first.getDay());
+    const todayStr = fmt(new Date());
+
+    // 날짜별 세션 목록 만들기
+    const byDate = {};
+    for (const [id, s] of Object.entries(scenarios)) {
+      const dates = [...(s.dates || [])].sort();
+      dates.forEach((d, i) => {
+        (byDate[d] = byDate[d] || []).push({ id, s, seq: i+1, total: dates.length });
+      });
+    }
+
+    const cal = $("calendar");
+    cal.innerHTML = "";
+    for (let i = 0; i < 42; i++) {
+      const d = new Date(start); d.setDate(start.getDate() + i);
+      const ds = fmt(d);
+      const cell = document.createElement("div");
+      cell.className = "day";
+      if (d.getMonth() !== m) cell.classList.add("other");
+      if (d.getDay() === 0) cell.classList.add("sun");
+      if (ds === todayStr) cell.classList.add("today");
+      cell.innerHTML = `<span class="num">${d.getDate()}</span>`;
+
+      (byDate[ds] || []).forEach(({id, s, seq, total}) => {
+        const card = document.createElement("button");
+        card.className = "session-card";
+        card.title = s.title || "제목 없는 세션";
+        card.innerHTML = s.image
+          ? `<img src="${s.image}" alt="${esc(s.title)} 세션 카드" />`
+          : `<div class="ph">${esc(s.title) || "제목 없음"}</div>`;
+        if (total > 1) card.innerHTML += `<span class="badge">${seq}회차</span>`;
+        card.onclick = () => openModal(id);
+        cell.appendChild(card);
+      });
+      cal.appendChild(cell);
+    }
+  }
+  const esc = s => (s||"").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+  $("prev-month").onclick = () => { current.setMonth(current.getMonth()-1); renderCalendar(); };
+  $("next-month").onclick = () => { current.setMonth(current.getMonth()+1); renderCalendar(); };
+
+  /* ---------- 모달 ---------- */
+  function setToggle(groupId, value){
+    [...$(groupId).children].forEach(b => b.classList.toggle("on", b.dataset.v === value));
+  }
+  function getToggle(groupId){
+    const on = [...$(groupId).children].find(b => b.classList.contains("on"));
+    return on ? on.dataset.v : null;
+  }
+  ["f-platform","f-type"].forEach(gid => {
+    [...$(gid).children].forEach(b => b.onclick = () => setToggle(gid, b.dataset.v));
+  });
+
+  function addDateRow(value){
+    const list = $("date-list");
+    const row = document.createElement("div");
+    row.className = "date-row";
+    row.innerHTML = `<span class="seq"></span><input type="date" value="${value||""}" /><button type="button" class="rm" aria-label="이 날짜 삭제">✕</button>`;
+    row.querySelector(".rm").onclick = () => { row.remove(); renumber(); };
+    row.querySelector("input").onchange = renumber;
+    list.appendChild(row);
+    renumber();
+  }
+  function renumber(){
+    [...$("date-list").children].forEach((row,i) => row.querySelector(".seq").textContent = `${i+1}회차`);
+  }
+  $("add-date").onclick = () => addDateRow("");
+
+  function openModal(id, presetDate){
+    editingId = id || null;
+    const s = id ? scenarios[id] : null;
+    $("modal-title").textContent = id ? "세션 기록" : "새 세션 기록";
+    $("f-title").value = s?.title || "";
+    $("f-writer").value = s?.writer || "";
+    setToggle("f-platform", s?.platform || null);
+    setToggle("f-type", s?.type || null);
+    $("f-kpc").value = s?.kpc || "";
+    $("f-pc").value = s?.pc || "";
+    imgData = s?.image || null;
+    $("img-drop").innerHTML = imgData
+      ? `<img src="${imgData}" alt="세션 카드 미리보기" />`
+      : `<span id="img-hint">클릭해서 이미지 올리기 ☁️</span>`;
+    $("date-list").innerHTML = "";
+    const dates = s ? [...(s.dates||[])].sort() : (presetDate ? [presetDate] : [""]);
+    dates.forEach(d => addDateRow(d));
+    $("delete-btn").style.display = id ? "block" : "none";
+    $("overlay").classList.add("open");
+  }
+  function closeModal(){ $("overlay").classList.remove("open"); }
+  $("modal-close").onclick = closeModal;
+  $("overlay").onclick = e => { if (e.target === $("overlay")) closeModal(); };
+  $("fab").onclick = () => openModal(null);
+
+  /* ---------- 이미지 업로드 (13:8로 압축해서 저장) ---------- */
+  $("img-drop").onclick = () => $("img-input").click();
+  $("img-drop").onkeydown = e => { if (e.key==="Enter"||e.key===" ") { e.preventDefault(); $("img-input").click(); } };
+  $("img-input").onchange = e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const img = new Image();
+    img.onload = () => {
+      const W = 780, H = 480; // 13:8
+      const canvas = document.createElement("canvas");
+      canvas.width = W; canvas.height = H;
+      const ctx = canvas.getContext("2d");
+      // cover 방식으로 채우기
+      const scale = Math.max(W/img.width, H/img.height);
+      const sw = img.width*scale, sh = img.height*scale;
+      ctx.drawImage(img, (W-sw)/2, (H-sh)/2, sw, sh);
+      imgData = canvas.toDataURL("image/jpeg", 0.82);
+      if (imgData.length > 900000) imgData = canvas.toDataURL("image/jpeg", 0.6);
+      $("img-drop").innerHTML = `<img src="${imgData}" alt="세션 카드 미리보기" />`;
+      URL.revokeObjectURL(img.src);
+    };
+    img.src = URL.createObjectURL(file);
+    e.target.value = "";
+  };
+
+  /* ---------- 저장 / 삭제 ---------- */
+  $("save-btn").onclick = async () => {
+    const title = $("f-title").value.trim();
+    if (!title) { toast("시나리오 제목을 적어 주세요!"); return; }
+    const dates = [...$("date-list").querySelectorAll("input")]
+      .map(i => i.value).filter(Boolean);
+    if (!dates.length) { toast("날짜를 하나 이상 골라 주세요!"); return; }
+    const data = {
+      title,
+      writer: $("f-writer").value.trim(),
+      platform: getToggle("f-platform"),
+      type: getToggle("f-type"),
+      kpc: $("f-kpc").value.trim(),
+      pc: $("f-pc").value.trim(),
+      dates: [...new Set(dates)].sort(),
+      image: imgData || null,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
+    try {
+      const col = db.collection("users").doc(uid).collection("scenarios");
+      if (editingId) await col.doc(editingId).set(data, { merge: true });
+      else await col.add(data);
+      toast("저장했어요 ☁️");
+      closeModal();
+    } catch (e) { toast("저장에 실패했어요: " + e.message); }
+  };
+
+  $("delete-btn").onclick = async () => {
+    if (!editingId) return;
+    if (!confirm("이 세션 기록을 정말 삭제할까요?")) return;
+    try {
+      await db.collection("users").doc(uid).collection("scenarios").doc(editingId).delete();
+      toast("삭제했어요");
+      closeModal();
+    } catch (e) { toast("삭제에 실패했어요: " + e.message); }
+  };
+
+  /* ---------- 토스트 ---------- */
+  let toastTimer;
+  function toast(msg){
+    const t = $("toast");
+    t.textContent = msg;
+    t.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove("show"), 2600);
+  }
+}
+</script>
+</body>
+</html>
